@@ -1,9 +1,313 @@
-import { View, Text } from "react-native";
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Vibration, ScrollView, AppState } from 'react-native';
 
 export default function HomeScreen() {
+  // --- STATE'LER ---
+  const [timeLeft, setTimeLeft] = useState(25 * 60); 
+  const [isActive, setIsActive] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
+  const [distractionCount, setDistractionCount] = useState(0); 
+  const [modalVisible, setModalVisible] = useState(false); 
+  
+  // AppState takibi için referans (YENİ EKLENDİ)
+  const appState = useRef(AppState.currentState);
+
+  const categories = ["Ders Çalışma", "Kodlama", "Proje", "Kitap Okuma"];
+
+  // --- 1. APP STATE DİNLEYİCİSİ (C MADDESİ - YENİ EKLENDİ) ---
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", nextAppState => {
+      // Eğer uygulama arka plana atıldıysa (background veya inactive) VE Sayaç çalışıyorsa
+      if (
+        appState.current.match(/active/) && 
+        nextAppState.match(/inactive|background/) && 
+        isActive
+      ) {
+        // 1. Sayacı Duraklat
+        setIsActive(false);
+        // 2. Dikkat Dağınıklığı Sayısını Artır
+        setDistractionCount(prev => prev + 1);
+        // (İsteğe bağlı) Kullanıcıya geri döndüğünde bilgi vermek için alert eklenebilir ama şimdilik gerek yok.
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isActive]); // isActive değiştiğinde listener güncellenir
+
+  // --- 2. ZAMANLAYICI MANTIĞI ---
+  useEffect(() => {
+    let interval = null;
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+      clearInterval(interval);
+      Vibration.vibrate(); 
+      setModalVisible(true); 
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
+  // --- YARDIMCI FONKSİYONLAR ---
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
+  };
+
+  const handleStartStop = () => setIsActive(!isActive);
+
+  const handleReset = () => {
+    setIsActive(false);
+    setTimeLeft(25 * 60);
+    setDistractionCount(0);
+  };
+
+  const adjustTime = (minutes) => {
+    if (!isActive) {
+      const newTime = timeLeft + (minutes * 60);
+      if (newTime > 0) setTimeLeft(newTime);
+    }
+  };
+
+  // Manuel ekleme butonu (İsteğe bağlı durabilir)
+  const addDistraction = () => {
+    if (isActive) setDistractionCount(distractionCount + 1);
+  };
+
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Zamanlayici ekrani</Text>
+    <View style={styles.container}>
+      {/* Kategori Seçici */}
+      <View style={styles.categoryContainer}>
+        <Text style={styles.sectionTitle}>Kategori Seçin</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollContainer}>
+          {categories.map((cat) => (
+            <TouchableOpacity 
+              key={cat} 
+              style={[styles.categoryBadge, selectedCategory === cat && styles.categorySelected]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextSelected]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Zamanlayıcı */}
+      <View style={styles.timerContainer}>
+        {!isActive && (
+          <TouchableOpacity onPress={() => adjustTime(-5)} style={styles.adjustBtn}>
+            <Text style={styles.adjustText}>-5dk</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.timerShape}>
+          <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+          <Text style={styles.statusText}>{isActive ? "Odaklanılıyor..." : "Hazır"}</Text>
+        </View>
+
+        {!isActive && (
+          <TouchableOpacity onPress={() => adjustTime(5)} style={styles.adjustBtn}>
+            <Text style={styles.adjustText}>+5dk</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Dikkat Dağıldı Sayacı */}
+      {(isActive || distractionCount > 0) && (
+         <TouchableOpacity style={styles.distractionBtn} onPress={addDistraction}>
+            <Text style={styles.distractionBtnText}>⚠️ Dikkat Kaybı: {distractionCount}</Text>
+         </TouchableOpacity>
+      )}
+
+      {/* Kontrol Butonları */}
+      <View style={styles.controlsContainer}>
+        {!isActive ? (
+           <TouchableOpacity style={[styles.button, styles.btnStart]} onPress={handleStartStop}>
+             <Text style={styles.btnText}>BAŞLAT</Text>
+           </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[styles.button, styles.btnStop]} onPress={handleStartStop}>
+            <Text style={styles.btnText}>DURAKLAT</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={[styles.button, styles.btnReset]} onPress={handleReset}>
+          <Text style={[styles.btnText, {color: '#555'}]}>SIFIRLA</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Özet Modalı */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>🎉 Seans Tamamlandı!</Text>
+            <Text style={styles.modalText}>Kategori: {selectedCategory}</Text>
+            <Text style={styles.modalText}>Süre: 25 Dakika</Text>
+            <Text style={styles.modalText}>Dikkat Dağılması: {distractionCount} kez</Text>
+            
+            <TouchableOpacity 
+              style={[styles.button, styles.btnStart, {marginTop: 20}]} 
+              onPress={() => {
+                setModalVisible(false);
+                handleReset();
+              }}
+            >
+              <Text style={styles.btnText}>Tamam</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FAF3E0', 
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    padding: 20,
+  },
+  categoryContainer: {
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 10,
+  },
+  scrollContainer: {
+    flexDirection: 'row',
+  },
+  categoryBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20,
+    marginHorizontal: 5,
+  },
+  categorySelected: {
+    backgroundColor: '#8CAC94', 
+  },
+  categoryText: {
+    color: '#555',
+  },
+  categoryTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timerShape: {
+    width: 220,
+    height: 220,
+    backgroundColor: '#8CAC94', 
+    borderRadius: 110, 
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  timerText: {
+    fontSize: 50,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  statusText: {
+    fontSize: 16,
+    color: '#F0F0F0',
+    marginTop: 5,
+  },
+  adjustBtn: {
+    padding: 10,
+  },
+  adjustText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8CAC94',
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+  button: {
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  btnStart: {
+    backgroundColor: '#8CAC94', 
+  },
+  btnStop: {
+    backgroundColor: '#BC6C6C', 
+  },
+  btnReset: {
+    backgroundColor: '#F5E8A6', 
+  },
+  btnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  distractionBtn: {
+    marginTop: -20,
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 5,
+  },
+  distractionBtnText: {
+    color: '#555',
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalView: {
+    width: 300,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#8CAC94',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#333',
+  }
+});
