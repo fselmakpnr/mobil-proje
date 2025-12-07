@@ -2,32 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Vibration, ScrollView, AppState } from 'react-native';
 
 export default function HomeScreen() {
-  // --- STATE'LER ---
+ 
   const [timeLeft, setTimeLeft] = useState(25 * 60); 
   const [isActive, setIsActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
   const [distractionCount, setDistractionCount] = useState(0); 
   const [modalVisible, setModalVisible] = useState(false); 
   
-  // AppState takibi için referans (YENİ EKLENDİ)
+  
   const appState = useRef(AppState.currentState);
 
   const categories = ["Ders Çalışma", "Kodlama", "Proje", "Kitap Okuma"];
 
-  // --- 1. APP STATE DİNLEYİCİSİ (C MADDESİ - YENİ EKLENDİ) ---
+
   useEffect(() => {
     const subscription = AppState.addEventListener("change", nextAppState => {
-      // Eğer uygulama arka plana atıldıysa (background veya inactive) VE Sayaç çalışıyorsa
+      
       if (
         appState.current.match(/active/) && 
         nextAppState.match(/inactive|background/) && 
         isActive
       ) {
-        // 1. Sayacı Duraklat
+       
         setIsActive(false);
-        // 2. Dikkat Dağınıklığı Sayısını Artır
+        
         setDistractionCount(prev => prev + 1);
-        // (İsteğe bağlı) Kullanıcıya geri döndüğünde bilgi vermek için alert eklenebilir ama şimdilik gerek yok.
+        
       }
 
       appState.current = nextAppState;
@@ -36,9 +36,8 @@ export default function HomeScreen() {
     return () => {
       subscription.remove();
     };
-  }, [isActive]); // isActive değiştiğinde listener güncellenir
+  }, [isActive]); 
 
-  // --- 2. ZAMANLAYICI MANTIĞI ---
   useEffect(() => {
     let interval = null;
     if (isActive && timeLeft > 0) {
@@ -54,7 +53,7 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
 
-  // --- YARDIMCI FONKSİYONLAR ---
+ 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -76,7 +75,7 @@ export default function HomeScreen() {
     }
   };
 
-  // Manuel ekleme butonu (İsteğe bağlı durabilir)
+  
   const addDistraction = () => {
     if (isActive) setDistractionCount(distractionCount + 1);
   };
@@ -101,7 +100,6 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* Zamanlayıcı */}
       <View style={styles.timerContainer}>
         {!isActive && (
           <TouchableOpacity onPress={() => adjustTime(-5)} style={styles.adjustBtn}>
@@ -121,14 +119,14 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Dikkat Dağıldı Sayacı */}
+    
       {(isActive || distractionCount > 0) && (
          <TouchableOpacity style={styles.distractionBtn} onPress={addDistraction}>
             <Text style={styles.distractionBtnText}>⚠️ Dikkat Kaybı: {distractionCount}</Text>
          </TouchableOpacity>
       )}
 
-      {/* Kontrol Butonları */}
+     
       <View style={styles.controlsContainer}>
         {!isActive ? (
            <TouchableOpacity style={[styles.button, styles.btnStart]} onPress={handleStartStop}>
@@ -145,7 +143,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Özet Modalı */}
+     
       <Modal
         animationType="slide"
         transparent={true}
