@@ -16,20 +16,20 @@ export default function ReportsScreen() {
   const [pieData, setPieData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  
+  // Verileri Çekme ve İşleme Fonksiyonu
   const loadData = async () => {
     try {
       const json = await AsyncStorage.getItem('sessions');
       const sessions = json ? JSON.parse(json) : [];
 
-    
+      // 1. Genel İstatistikler
       const todayStr = new Date().toISOString().split('T')[0];
       
       let todayFocus = 0;
       let totalFocus = 0;
       let totalDistractions = 0;
       
-      
+      // Pasta Grafik için kategori takibi
       const categoryCounts = {}; 
 
       sessions.forEach(session => {
@@ -40,7 +40,7 @@ export default function ReportsScreen() {
           todayFocus += session.duration;
         }
 
-       
+        // Kategori toplama
         if (categoryCounts[session.category]) {
           categoryCounts[session.category] += session.duration;
         } else {
@@ -50,7 +50,7 @@ export default function ReportsScreen() {
 
       setStats({ todayFocus, totalFocus, totalDistractions });
 
-      
+      // 2. Pasta Grafik Verisi Hazırlama
       const pieColors = ['#FF6F61', '#FF9800', '#4CAF50', '#2979FF', '#9C27B0'];
       const pData = Object.keys(categoryCounts).map((key, index) => ({
         name: key,
@@ -61,11 +61,14 @@ export default function ReportsScreen() {
       }));
       setPieData(pData);
 
-    
+      // 3. Çubuk Grafik (Son 7 Gün) Verisi Hazırlama
+      // (Basitlik için son 7 güne sabit veri atıyoruz, veri çoğaldıkça dinamikleşir)
+      // Burada gerçek verileri günlere göre gruplamak gerekir, şimdilik demo veri koyuyorum
+      // Veritabanı boşsa grafik çökmesin diye kontrol:
       if (sessions.length > 0) {
         setChartData({
           labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
-          datasets: [{ data: [20, 45, 28, 80, 99, 43, 50] }] 
+          datasets: [{ data: [20, 45, 28, 80, 99, 43, 50] }] // DEMO VERİ (Gerçek veriyle değiştirebiliriz)
         });
       }
 
@@ -76,7 +79,7 @@ export default function ReportsScreen() {
     }
   };
 
-  
+  // Ekran her odaklandığında verileri yenile (Tab değişince çalışır)
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -142,7 +145,7 @@ export default function ReportsScreen() {
 const chartConfig = {
   backgroundGradientFrom: "#fff",
   backgroundGradientTo: "#fff",
-  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, 
+  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, // Bizim yeşil rengimiz
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   strokeWidth: 2, 
   barPercentage: 0.5,
