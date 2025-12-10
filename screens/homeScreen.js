@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Vibration, ScrollView, AppState, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Vibration, ScrollView, AppState, Alert, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import Svg, { Circle } from 'react-native-svg'; 
 
 
-import { useTheme } from '../context/themeContext'; 
+import { useTheme } from '../context/themeContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -14,14 +15,18 @@ Notifications.setNotificationHandler({
   }),
 });
 
+
+const TOTAL_DURATION = 25 * 60; 
+const RADIUS = 100; 
+const STROKE_WIDTH = 15; 
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS; 
+
 export default function HomeScreen() {
   const { theme } = useTheme();
   const colors = theme.colors; 
-
-
   const styles = getStyles(colors);
 
-  const [timeLeft, setTimeLeft] = useState(25 * 60); 
+  const [timeLeft, setTimeLeft] = useState(TOTAL_DURATION); 
   const [isActive, setIsActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
   const [distractionCount, setDistractionCount] = useState(0); 
@@ -100,9 +105,22 @@ export default function HomeScreen() {
     setIsActive(!isActive);
   };
 
-  const handleReset = () => { setIsActive(false); setTimeLeft(25 * 60); setDistractionCount(0); };
-  const adjustTime = (m) => { if (!isActive && timeLeft + (m*60) > 0) setTimeLeft(timeLeft + (m*60)); };
+  const handleReset = () => { setIsActive(false); setTimeLeft(TOTAL_DURATION); setDistractionCount(0); };
+  
+ 
+  const adjustTime = (m) => { 
+    if (!isActive) {
+      const newTime = timeLeft + (m * 60);
+      if (newTime > 0) setTimeLeft(newTime);
+    } 
+  };
+  
   const addDistraction = () => { if (isActive) setDistractionCount(distractionCount + 1); };
+
+  
+  const progress = timeLeft / TOTAL_DURATION;
+  
+  const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 
   return (
     <View style={styles.container}>
@@ -130,22 +148,55 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
+      
       <View style={styles.timerContainer}>
         {!isActive && (
           <TouchableOpacity onPress={() => adjustTime(-5)} style={styles.adjustBtn}>
             <Text style={styles.adjustText}>-5dk</Text>
           </TouchableOpacity>
         )}
-        <View style={styles.timerShape}>
-          <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-          <Text style={styles.statusText}>{isActive ? "Odaklanılıyor..." : "Hazır"}</Text>
+        
+        
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            
+            <Svg width={(RADIUS * 2) + STROKE_WIDTH} height={(RADIUS * 2) + STROKE_WIDTH} style={{ transform: [{ rotate: '-90deg' }] }}>
+              
+                <Circle
+                    cx={RADIUS + (STROKE_WIDTH/2)}
+                    cy={RADIUS + (STROKE_WIDTH/2)}
+                    r={RADIUS}
+                    stroke={colors.card} 
+                    strokeWidth={STROKE_WIDTH}
+                    fill="transparent"
+                />
+               
+                <Circle
+                    cx={RADIUS + (STROKE_WIDTH/2)}
+                    cy={RADIUS + (STROKE_WIDTH/2)}
+                    r={RADIUS}
+                    stroke={colors.primary} 
+                    strokeWidth={STROKE_WIDTH}
+                    fill="transparent"
+                    strokeDasharray={CIRCUMFERENCE} 
+                    strokeDashoffset={strokeDashoffset} 
+                    strokeLinecap="round" 
+                />
+            </Svg>
+
+            
+            <View style={styles.timerTextContainer}>
+                <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+                <Text style={styles.statusText}>{isActive ? "Odaklanılıyor..." : "Hazır"}</Text>
+            </View>
         </View>
+
         {!isActive && (
           <TouchableOpacity onPress={() => adjustTime(5)} style={styles.adjustBtn}>
             <Text style={styles.adjustText}>+5dk</Text>
           </TouchableOpacity>
         )}
       </View>
+      {/* --------------------------- */}
 
       {(isActive || distractionCount > 0) && (
          <TouchableOpacity style={styles.distractionBtn} onPress={addDistraction}>
@@ -187,7 +238,6 @@ export default function HomeScreen() {
   );
 }
 
-// Stilleri renk değişkenine göre üreten fonksiyon
 const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'space-evenly', padding: 20, backgroundColor: colors.background },
   categoryContainer: { height: 100, alignItems: 'center', justifyContent: 'center' },
@@ -197,10 +247,14 @@ const getStyles = (colors) => StyleSheet.create({
   categorySelected: { backgroundColor: colors.primary },
   categoryText: { fontSize: 14, color: colors.text },
   categoryTextSelected: { color: '#fff', fontWeight: 'bold' },
+  
+  
   timerContainer: { flexDirection: 'row', alignItems: 'center' },
-  timerShape: { width: 220, height: 220, borderRadius: 110, alignItems: 'center', justifyContent: 'center', elevation: 10, backgroundColor: colors.primary },
-  timerText: { fontSize: 50, fontWeight: 'bold', color: '#FFF' },
-  statusText: { fontSize: 16, color: '#F0F0F0', marginTop: 5 },
+ 
+  timerTextContainer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  timerText: { fontSize: 42, fontWeight: 'bold', color: colors.text }, 
+  statusText: { fontSize: 14, color: colors.subText || '#888', marginTop: 5 },
+  
   adjustBtn: { padding: 10 },
   adjustText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   controlsContainer: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
