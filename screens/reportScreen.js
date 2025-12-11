@@ -1,46 +1,56 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
 
+// DOSYA YOLU (Senin yapına uygun)
+import { useTheme } from '../context/themeContext';
+
 const screenWidth = Dimensions.get("window").width;
 
 export default function ReportsScreen() {
+  const { theme } = useTheme(); 
+  const colors = theme.colors;
+  const styles = getStyles(colors);
+
   const [stats, setStats] = useState({
     todayFocus: 0,
     totalFocus: 0,
     totalDistractions: 0
   });
-  const [chartData, setChartData] = useState(null);
+  
+ 
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: [{ data: [] }]
+  });
   const [pieData, setPieData] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // Verileri Çekme ve İşleme Fonksiyonu
+  
   const loadData = async () => {
     try {
       const json = await AsyncStorage.getItem('sessions');
       const sessions = json ? JSON.parse(json) : [];
 
-      // 1. Genel İstatistikler
-      const todayStr = new Date().toISOString().split('T')[0];
+    
+      const todayStr = new Date().toISOString().split('T')[0]; 
       
       let todayFocus = 0;
       let totalFocus = 0;
       let totalDistractions = 0;
-      
-      // Pasta Grafik için kategori takibi
       const categoryCounts = {}; 
 
       sessions.forEach(session => {
         totalFocus += session.duration;
         totalDistractions += session.distractions;
 
+        
         if (session.date === todayStr) {
           todayFocus += session.duration;
         }
 
-        // Kategori toplama
+        
         if (categoryCounts[session.category]) {
           categoryCounts[session.category] += session.duration;
         } else {
@@ -50,36 +60,51 @@ export default function ReportsScreen() {
 
       setStats({ todayFocus, totalFocus, totalDistractions });
 
-      // 2. Pasta Grafik Verisi Hazırlama
+      
       const pieColors = ['#FF6F61', '#FF9800', '#4CAF50', '#2979FF', '#9C27B0'];
       const pData = Object.keys(categoryCounts).map((key, index) => ({
         name: key,
         population: categoryCounts[key],
         color: pieColors[index % pieColors.length],
-        legendFontColor: "#7F7F7F",
+        legendFontColor: colors.text,
         legendFontSize: 12
       }));
       setPieData(pData);
 
-      // 3. Çubuk Grafik (Son 7 Gün) Verisi Hazırlama
-      // (Basitlik için son 7 güne sabit veri atıyoruz, veri çoğaldıkça dinamikleşir)
-      // Burada gerçek verileri günlere göre gruplamak gerekir, şimdilik demo veri koyuyorum
-      // Veritabanı boşsa grafik çökmesin diye kontrol:
-      if (sessions.length > 0) {
-        setChartData({
-          labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
-          datasets: [{ data: [20, 45, 28, 80, 99, 43, 50] }] // DEMO VERİ (Gerçek veriyle değiştirebiliriz)
-        });
+     
+      const last7DaysLabels = [];
+      const last7DaysData = [];
+      const dayNamesTR = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+
+      
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i); 
+        
+        const dateString = d.toISOString().split('T')[0]; 
+        const dayName = dayNamesTR[d.getDay()]; 
+        
+        last7DaysLabels.push(dayName);
+
+        
+        const dayTotal = sessions
+          .filter(s => s.date === dateString)
+          .reduce((sum, current) => sum + current.duration, 0);
+          
+        last7DaysData.push(dayTotal);
       }
 
-      setLoading(false);
+      setChartData({
+        labels: last7DaysLabels,
+        datasets: [{ data: last7DaysData }]
+      });
 
     } catch (e) {
-      console.error(e);
+      console.error("Veri yükleme hatası:", e);
     }
   };
 
-  // Ekran her odaklandığında verileri yenile (Tab değişince çalışır)
+  
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -90,29 +115,30 @@ export default function ReportsScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.headerTitle}>İstatistikler</Text>
 
-      {/* İstatistik Kartları */}
+      
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: '#8CAC94' }]}>
+        <View style={[styles.statCard, { backgroundColor: colors.primary }]}>
           <Text style={styles.statValue}>{stats.todayFocus} dk</Text>
           <Text style={styles.statLabel}>Bugün</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#F5E8A6' }]}>
+        <View style={[styles.statCard, { backgroundColor: colors.reset }]}>
           <Text style={[styles.statValue, { color: '#555' }]}>{stats.totalFocus} dk</Text>
           <Text style={[styles.statLabel, { color: '#555' }]}>Toplam</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#BC6C6C' }]}>
+        <View style={[styles.statCard, { backgroundColor: colors.stop }]}> 
           <Text style={styles.statValue}>{stats.totalDistractions}</Text>
           <Text style={styles.statLabel}>Dikkat K.</Text>
         </View>
       </View>
 
+      
       <Text style={styles.chartTitle}>Kategori Dağılımı</Text>
       {pieData.length > 0 ? (
         <PieChart
           data={pieData}
           width={screenWidth - 40}
           height={220}
-          chartConfig={chartConfig}
+          chartConfig={chartConfig(colors)}
           accessor={"population"}
           backgroundColor={"transparent"}
           paddingLeft={"15"}
@@ -122,18 +148,18 @@ export default function ReportsScreen() {
         <Text style={styles.noDataText}>Henüz veri yok. Bir seans tamamlayın!</Text>
       )}
 
+     
       <Text style={styles.chartTitle}>Haftalık Odaklanma</Text>
       <BarChart
-        data={chartData || {
-          labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
-          datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
-        }}
+        data={chartData}
         width={screenWidth - 40}
         height={220}
         yAxisLabel=""
         yAxisSuffix="dk"
-        chartConfig={chartConfig}
+        chartConfig={chartConfig(colors)}
         verticalLabelRotation={0}
+        fromZero={true}
+        showValuesOnTopOfBars={true} 
         style={{ borderRadius: 16 }}
       />
       
@@ -142,22 +168,24 @@ export default function ReportsScreen() {
   );
 }
 
-const chartConfig = {
-  backgroundGradientFrom: "#fff",
-  backgroundGradientTo: "#fff",
-  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, // Bizim yeşil rengimiz
-  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+
+const chartConfig = (colors) => ({
+  backgroundGradientFrom: colors.card,
+  backgroundGradientTo: colors.card,
+  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, 
+  labelColor: (opacity = 1) => colors.text, 
   strokeWidth: 2, 
   barPercentage: 0.5,
-};
+  decimalPlaces: 0,
+});
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF3E0', padding: 20 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#555', marginBottom: 20 },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background, padding: 20 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 20 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
   statCard: { width: '30%', padding: 15, borderRadius: 10, alignItems: 'center', elevation: 3 },
   statValue: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 5 },
   statLabel: { fontSize: 12, color: '#f0f0f0' },
-  chartTitle: { fontSize: 18, fontWeight: 'bold', color: '#555', marginTop: 10, marginBottom: 10 },
-  noDataText: { textAlign: 'center', color: '#999', marginVertical: 20, fontStyle: 'italic' }
+  chartTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: 10, marginBottom: 10 },
+  noDataText: { textAlign: 'center', color: colors.subText || '#999', marginVertical: 20, fontStyle: 'italic' }
 });
