@@ -15,7 +15,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// ZAMANLAYICI AYARLARI
+
 const TOTAL_DURATION = 25 * 60; 
 const RADIUS = 100; 
 const STROKE_WIDTH = 15; 
@@ -27,6 +27,9 @@ export default function HomeScreen() {
   const styles = getStyles(colors);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_DURATION); 
+  
+  const [currentSessionLimit, setCurrentSessionLimit] = useState(TOTAL_DURATION);
+  
   const [isActive, setIsActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
   const [distractionCount, setDistractionCount] = useState(0); 
@@ -50,13 +53,12 @@ export default function HomeScreen() {
     });
   };
 
-  
   const saveSession = useCallback(async () => {
     try {
       const today = new Date();
       
       
-      const elapsedSeconds = TOTAL_DURATION - timeLeft;
+      const elapsedSeconds = currentSessionLimit - timeLeft;
       const elapsedMinutes = Math.ceil(elapsedSeconds / 60);
 
      
@@ -66,7 +68,7 @@ export default function HomeScreen() {
         id: Date.now().toString(),
         date: today.toISOString().split('T')[0],
         category: selectedCategory,
-        duration: elapsedMinutes, // ARTIK GERÇEK SÜREYİ KAYDEDİYOR
+        duration: elapsedMinutes, 
         distractions: distractionCount,
         timestamp: today.getTime()
       };
@@ -78,7 +80,7 @@ export default function HomeScreen() {
       console.log("Seans kaydedildi:", elapsedMinutes, "dakika");
 
     } catch (e) { console.error(e); }
-  }, [selectedCategory, distractionCount, timeLeft]);
+  }, [selectedCategory, distractionCount, timeLeft, currentSessionLimit]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", nextAppState => {
@@ -117,26 +119,27 @@ export default function HomeScreen() {
     setIsActive(!isActive);
   };
 
-  
   const handleReset = async () => { 
     setIsActive(false); 
     setTimeLeft(TOTAL_DURATION); 
+    setCurrentSessionLimit(TOTAL_DURATION); 
     setDistractionCount(0);
-    
-   
   };
   
   const adjustTime = (m) => { 
     if (!isActive) {
       const newTime = timeLeft + (m * 60);
-      if (newTime > 0) setTimeLeft(newTime);
+      if (newTime > 0) {
+        setTimeLeft(newTime);
+        setCurrentSessionLimit(newTime); 
+      }
     } 
   };
   
   const addDistraction = () => { if (isActive) setDistractionCount(distractionCount + 1); };
 
- 
-  const progress = timeLeft / TOTAL_DURATION;
+
+  const progress = timeLeft / currentSessionLimit;
   const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 
   return (
@@ -148,9 +151,13 @@ export default function HomeScreen() {
           {categories.map((cat) => (
             <TouchableOpacity 
               key={cat} 
+             
+              disabled={isActive}
               style={[
                 styles.categoryBadge, 
-                selectedCategory === cat && styles.categorySelected
+                selectedCategory === cat && styles.categorySelected,
+               
+                isActive && { opacity: 0.5 }
               ]}
               onPress={() => setSelectedCategory(cat)}
             >
@@ -178,7 +185,7 @@ export default function HomeScreen() {
                     cx={RADIUS + (STROKE_WIDTH/2)}
                     cy={RADIUS + (STROKE_WIDTH/2)}
                     r={RADIUS}
-                    stroke={colors.card}
+                    stroke={colors.card} // Arka plan çemberi
                     strokeWidth={STROKE_WIDTH}
                     fill="transparent"
                 />
@@ -186,7 +193,7 @@ export default function HomeScreen() {
                     cx={RADIUS + (STROKE_WIDTH/2)}
                     cy={RADIUS + (STROKE_WIDTH/2)}
                     r={RADIUS}
-                    stroke={colors.primary}
+                    stroke={colors.primary} // İlerleyen renkli çember
                     strokeWidth={STROKE_WIDTH}
                     fill="transparent"
                     strokeDasharray={CIRCUMFERENCE}
@@ -234,7 +241,8 @@ export default function HomeScreen() {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>🎉 Seans Tamamlandı!</Text>
             <Text style={styles.modalText}>Kategori: {selectedCategory}</Text>
-            <Text style={styles.modalText}>Süre: {Math.ceil((TOTAL_DURATION - timeLeft) / 60)} Dakika</Text>
+            
+            <Text style={styles.modalText}>Süre: {Math.ceil((currentSessionLimit - timeLeft) / 60)} Dakika</Text>
             <Text style={styles.modalText}>Dikkat Dağılması: {distractionCount} kez</Text>
             <TouchableOpacity 
               style={[styles.btnStart, {marginTop: 20, minWidth: 100}]} 
@@ -254,7 +262,7 @@ const getStyles = (colors) => StyleSheet.create({
   categoryContainer: { height: 100, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: colors.text },
   scrollContainer: { flexDirection: 'row' },
-  categoryBadge: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginHorizontal: 5, backgroundColor: colors.card },
+  categoryBadge: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginHorizontal: 5, backgroundColor: colors.card, elevation: 2, shadowColor: '#000', shadowOffset: {width:0, height:1}, shadowOpacity: 0.1, shadowRadius: 2 }, // Gölgelendirme eklendi
   categorySelected: { backgroundColor: colors.primary },
   categoryText: { fontSize: 14, color: colors.text },
   categoryTextSelected: { color: '#fff', fontWeight: 'bold' },
@@ -265,14 +273,14 @@ const getStyles = (colors) => StyleSheet.create({
   adjustBtn: { padding: 10 },
   adjustText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   controlsContainer: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
-  btnStart: { paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, minWidth: 120, alignItems: 'center', backgroundColor: colors.primary },
-  btnStop: { paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, minWidth: 120, alignItems: 'center', backgroundColor: colors.stop },
-  btnReset: { paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, minWidth: 120, alignItems: 'center', backgroundColor: colors.reset },
+  btnStart: { paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, minWidth: 120, alignItems: 'center', backgroundColor: colors.primary, elevation: 3 },
+  btnStop: { paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, minWidth: 120, alignItems: 'center', backgroundColor: colors.stop || '#FF6B6B', elevation: 3 },
+  btnReset: { paddingVertical: 15, paddingHorizontal: 30, borderRadius: 10, minWidth: 120, alignItems: 'center', backgroundColor: colors.reset || '#E0E0E0', elevation: 1 },
   btnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-  distractionBtn: { marginTop: -20, padding: 8, borderRadius: 5, backgroundColor: colors.card },
+  distractionBtn: { marginTop: -20, padding: 8, borderRadius: 5, backgroundColor: colors.card, borderWidth: 1, borderColor: '#eee' },
   distractionBtnText: { fontSize: 14, color: colors.text },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalView: { width: 300, borderRadius: 20, padding: 35, alignItems: 'center', elevation: 5, borderWidth: 1, backgroundColor: colors.background, borderColor: colors.card },
+  modalView: { width: 300, borderRadius: 20, padding: 35, alignItems: 'center', elevation: 5, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border || '#eee' },
   modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 15, color: colors.primary },
   modalText: { fontSize: 16, marginBottom: 10, color: colors.text }
 });
