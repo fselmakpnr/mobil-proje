@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BarChart, PieChart } from 'react-native-chart-kit';
+import { BarChart, PieChart, LineChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
 
-// DOSYA YOLU (Senin yapına uygun)
+
 import { useTheme } from '../context/themeContext';
 
 const screenWidth = Dimensions.get("window").width;
@@ -19,22 +19,28 @@ export default function ReportsScreen() {
     totalFocus: 0,
     totalDistractions: 0
   });
-  
- 
-  const [chartData, setChartData] = useState({
-    labels: [],
-    datasets: [{ data: [] }]
-  });
-  const [pieData, setPieData] = useState([]);
 
   
+  const [chartData, setChartData] = useState({
+    labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
+    datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
+  });
+
+  const [distractionChartData, setDistractionChartData] = useState({
+    labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
+    datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
+  });
+
+  const [pieData, setPieData] = useState([]);
+  // ------------------------------------------
+
   const loadData = async () => {
     try {
       const json = await AsyncStorage.getItem('sessions');
       const sessions = json ? JSON.parse(json) : [];
 
-    
-      const todayStr = new Date().toISOString().split('T')[0]; 
+      
+      const todayStr = new Date().toISOString().split('T')[0];
       
       let todayFocus = 0;
       let totalFocus = 0;
@@ -45,12 +51,10 @@ export default function ReportsScreen() {
         totalFocus += session.duration;
         totalDistractions += session.distractions;
 
-        
         if (session.date === todayStr) {
           todayFocus += session.duration;
         }
 
-        
         if (categoryCounts[session.category]) {
           categoryCounts[session.category] += session.duration;
         } else {
@@ -71,32 +75,42 @@ export default function ReportsScreen() {
       }));
       setPieData(pData);
 
-     
+      // 3. HAFTALIK VERİLER (Süre ve Dikkat)
       const last7DaysLabels = [];
-      const last7DaysData = [];
+      const last7DaysDuration = [];
+      const last7DaysDistractions = [];
+      
       const dayNamesTR = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 
-      
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
-        d.setDate(d.getDate() - i); 
+        d.setDate(d.getDate() - i);
         
-        const dateString = d.toISOString().split('T')[0]; 
-        const dayName = dayNamesTR[d.getDay()]; 
+        const dateString = d.toISOString().split('T')[0];
+        const dayName = dayNamesTR[d.getDay()];
         
         last7DaysLabels.push(dayName);
 
-        
-        const dayTotal = sessions
-          .filter(s => s.date === dateString)
-          .reduce((sum, current) => sum + current.duration, 0);
-          
-        last7DaysData.push(dayTotal);
+        // O güne ait kayıtları bul
+        const daysSessions = sessions.filter(s => s.date === dateString);
+
+        // Süre toplamı
+        const durationTotal = daysSessions.reduce((sum, curr) => sum + curr.duration, 0);
+        last7DaysDuration.push(durationTotal);
+
+        // Dikkat dağınıklığı toplamı
+        const distractionTotal = daysSessions.reduce((sum, curr) => sum + curr.distractions, 0);
+        last7DaysDistractions.push(distractionTotal);
       }
 
       setChartData({
         labels: last7DaysLabels,
-        datasets: [{ data: last7DaysData }]
+        datasets: [{ data: last7DaysDuration }]
+      });
+
+      setDistractionChartData({
+        labels: last7DaysLabels,
+        datasets: [{ data: last7DaysDistractions }]
       });
 
     } catch (e) {
@@ -104,7 +118,6 @@ export default function ReportsScreen() {
     }
   };
 
-  
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -148,19 +161,37 @@ export default function ReportsScreen() {
         <Text style={styles.noDataText}>Henüz veri yok. Bir seans tamamlayın!</Text>
       )}
 
-     
-      <Text style={styles.chartTitle}>Haftalık Odaklanma</Text>
+      
+      <Text style={styles.chartTitle}>Haftalık Odaklanma (Dk)</Text>
       <BarChart
         data={chartData}
         width={screenWidth - 40}
         height={220}
         yAxisLabel=""
-        yAxisSuffix="dk"
+        yAxisSuffix=""
         chartConfig={chartConfig(colors)}
         verticalLabelRotation={0}
         fromZero={true}
-        showValuesOnTopOfBars={true} 
+        showValuesOnTopOfBars={true}
         style={{ borderRadius: 16 }}
+      />
+
+      
+      <Text style={styles.chartTitle}>Haftalık Dikkat Dağınıklığı</Text>
+      <LineChart
+        data={distractionChartData}
+        width={screenWidth - 40}
+        height={220}
+        yAxisLabel=""
+        yAxisSuffix=""
+        chartConfig={{
+          ...chartConfig(colors),
+          color: (opacity = 1) => colors.stop ? colors.stop : `rgba(255, 99, 71, ${opacity})`,
+          labelColor: (opacity = 1) => colors.text,
+        }}
+        bezier
+        fromZero={true}
+        style={{ borderRadius: 16, marginTop: 10 }}
       />
       
       <View style={{ height: 50 }} />
@@ -168,12 +199,11 @@ export default function ReportsScreen() {
   );
 }
 
-
 const chartConfig = (colors) => ({
   backgroundGradientFrom: colors.card,
   backgroundGradientTo: colors.card,
-  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, 
-  labelColor: (opacity = 1) => colors.text, 
+  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, // Yeşil tonu
+  labelColor: (opacity = 1) => colors.text,
   strokeWidth: 2, 
   barPercentage: 0.5,
   decimalPlaces: 0,
@@ -186,6 +216,6 @@ const getStyles = (colors) => StyleSheet.create({
   statCard: { width: '30%', padding: 15, borderRadius: 10, alignItems: 'center', elevation: 3 },
   statValue: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 5 },
   statLabel: { fontSize: 12, color: '#f0f0f0' },
-  chartTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: 10, marginBottom: 10 },
+  chartTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: 20, marginBottom: 10 },
   noDataText: { textAlign: 'center', color: colors.subText || '#999', marginVertical: 20, fontStyle: 'italic' }
 });
