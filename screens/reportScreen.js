@@ -3,8 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BarChart, PieChart, LineChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
-
-
 import { useTheme } from '../context/themeContext';
 
 const screenWidth = Dimensions.get("window").width;
@@ -20,7 +18,6 @@ export default function ReportsScreen() {
     totalDistractions: 0
   });
 
-  
   const [chartData, setChartData] = useState({
     labels: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
     datasets: [{ data: [0, 0, 0, 0, 0, 0, 0] }]
@@ -32,7 +29,6 @@ export default function ReportsScreen() {
   });
 
   const [pieData, setPieData] = useState([]);
-  // ------------------------------------------
 
   const loadData = async () => {
     try {
@@ -64,18 +60,22 @@ export default function ReportsScreen() {
 
       setStats({ todayFocus, totalFocus, totalDistractions });
 
-      
+     
       const pieColors = ['#FF6F61', '#FF9800', '#4CAF50', '#2979FF', '#9C27B0'];
+      
+      
+      const legendColor = theme.dark ? "#FFFFFF" : "#000000"; 
+
       const pData = Object.keys(categoryCounts).map((key, index) => ({
         name: key,
         population: categoryCounts[key],
         color: pieColors[index % pieColors.length],
-        legendFontColor: colors.text,
-        legendFontSize: 12
+        legendFontColor: legendColor,
+        legendFontSize: 13            
       }));
       setPieData(pData);
 
-      // 3. HAFTALIK VERİLER (Süre ve Dikkat)
+      
       const last7DaysLabels = [];
       const last7DaysDuration = [];
       const last7DaysDistractions = [];
@@ -91,14 +91,11 @@ export default function ReportsScreen() {
         
         last7DaysLabels.push(dayName);
 
-        // O güne ait kayıtları bul
         const daysSessions = sessions.filter(s => s.date === dateString);
 
-        // Süre toplamı
         const durationTotal = daysSessions.reduce((sum, curr) => sum + curr.duration, 0);
         last7DaysDuration.push(durationTotal);
 
-        // Dikkat dağınıklığı toplamı
         const distractionTotal = daysSessions.reduce((sum, curr) => sum + curr.distractions, 0);
         last7DaysDistractions.push(distractionTotal);
       }
@@ -121,14 +118,14 @@ export default function ReportsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, [theme.dark]) 
   );
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.headerTitle}>İstatistikler</Text>
 
-      
+      {/* Kartlar */}
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: colors.primary }]}>
           <Text style={styles.statValue}>{stats.todayFocus} dk</Text>
@@ -161,7 +158,7 @@ export default function ReportsScreen() {
         <Text style={styles.noDataText}>Henüz veri yok. Bir seans tamamlayın!</Text>
       )}
 
-      
+      {/* Bar Grafik (Süre) */}
       <Text style={styles.chartTitle}>Haftalık Odaklanma (Dk)</Text>
       <BarChart
         data={chartData}
@@ -202,8 +199,9 @@ export default function ReportsScreen() {
 const chartConfig = (colors) => ({
   backgroundGradientFrom: colors.card,
   backgroundGradientTo: colors.card,
-  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`, // Yeşil tonu
-  labelColor: (opacity = 1) => colors.text,
+  color: (opacity = 1) => `rgba(140, 172, 148, ${opacity})`,
+  
+  labelColor: (opacity = 1) => colors.text, 
   strokeWidth: 2, 
   barPercentage: 0.5,
   decimalPlaces: 0,

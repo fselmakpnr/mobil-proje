@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import Svg, { Circle } from 'react-native-svg';
 
-// DOSYA YOLU
+
 import { useTheme } from '../context/themeContext';
 
 Notifications.setNotificationHandler({
@@ -61,7 +61,7 @@ export default function HomeScreen() {
       const elapsedSeconds = currentSessionLimit - timeLeft;
       const elapsedMinutes = Math.ceil(elapsedSeconds / 60);
 
-     
+      
       if (elapsedMinutes <= 0) return;
 
       const newSession = {
@@ -151,12 +151,12 @@ export default function HomeScreen() {
           {categories.map((cat) => (
             <TouchableOpacity 
               key={cat} 
-             
+              
               disabled={isActive}
               style={[
                 styles.categoryBadge, 
                 selectedCategory === cat && styles.categorySelected,
-               
+                
                 isActive && { opacity: 0.5 }
               ]}
               onPress={() => setSelectedCategory(cat)}
@@ -185,7 +185,7 @@ export default function HomeScreen() {
                     cx={RADIUS + (STROKE_WIDTH/2)}
                     cy={RADIUS + (STROKE_WIDTH/2)}
                     r={RADIUS}
-                    stroke={colors.card} // Arka plan çemberi
+                    stroke={colors.card} 
                     strokeWidth={STROKE_WIDTH}
                     fill="transparent"
                 />
@@ -193,7 +193,7 @@ export default function HomeScreen() {
                     cx={RADIUS + (STROKE_WIDTH/2)}
                     cy={RADIUS + (STROKE_WIDTH/2)}
                     r={RADIUS}
-                    stroke={colors.primary} // İlerleyen renkli çember
+                    stroke={colors.primary} 
                     strokeWidth={STROKE_WIDTH}
                     fill="transparent"
                     strokeDasharray={CIRCUMFERENCE}
@@ -241,7 +241,7 @@ export default function HomeScreen() {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>🎉 Seans Tamamlandı!</Text>
             <Text style={styles.modalText}>Kategori: {selectedCategory}</Text>
-            
+           
             <Text style={styles.modalText}>Süre: {Math.ceil((currentSessionLimit - timeLeft) / 60)} Dakika</Text>
             <Text style={styles.modalText}>Dikkat Dağılması: {distractionCount} kez</Text>
             <TouchableOpacity 
@@ -262,7 +262,7 @@ const getStyles = (colors) => StyleSheet.create({
   categoryContainer: { height: 100, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: colors.text },
   scrollContainer: { flexDirection: 'row' },
-  categoryBadge: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginHorizontal: 5, backgroundColor: colors.card, elevation: 2, shadowColor: '#000', shadowOffset: {width:0, height:1}, shadowOpacity: 0.1, shadowRadius: 2 }, // Gölgelendirme eklendi
+  categoryBadge: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginHorizontal: 5, backgroundColor: colors.card, elevation: 2, shadowColor: '#000', shadowOffset: {width:0, height:1}, shadowOpacity: 0.1, shadowRadius: 2 }, 
   categorySelected: { backgroundColor: colors.primary },
   categoryText: { fontSize: 14, color: colors.text },
   categoryTextSelected: { color: '#fff', fontWeight: 'bold' },

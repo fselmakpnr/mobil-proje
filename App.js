@@ -5,11 +5,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 
-import { ThemeProvider, useTheme } from './context/themeContext'; // küçük 't' ile
-import HomeScreen from './screens/homeScreen';   // 'screens' klasörü (çoğul)
-import ReportScreen from './screens/reportScreen'; // 'screens' klasörü (çoğul)
+import { ThemeProvider, useTheme } from './context/themeContext'; 
+import HomeScreen from './screens/homeScreen'; 
+import ReportScreen from './screens/reportScreen'; 
 
 const Tab = createBottomTabNavigator();
+
 
 function AppNavigation() {
   const { theme, toggleTheme } = useTheme(); 
@@ -20,25 +21,41 @@ function AppNavigation() {
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
             let iconName;
+           
+            const iconSize = 30; 
+
             if (route.name === 'Zamanlayıcı') iconName = focused ? 'timer' : 'timer-outline';
             else if (route.name === 'Raporlar') iconName = focused ? 'bar-chart' : 'bar-chart-outline';
-            return <Ionicons name={iconName} size={size} color={color} />;
+            
+            return <Ionicons name={iconName} size={iconSize} color={color} />;
           },
           tabBarActiveTintColor: theme.colors.tint,
           tabBarInactiveTintColor: 'gray',
+        
           tabBarStyle: { 
             backgroundColor: theme.colors.tabBar, 
             borderTopWidth: 0,
-            height: 60,
-            paddingBottom: 10
+            height: 90,        
+            paddingBottom: 30, 
+            paddingTop: 10,    
+            elevation: 10,     
+            shadowColor: '#000', 
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
           },
+          tabBarLabelStyle: {
+            fontSize: 12,      
+            fontWeight: '600',
+            marginBottom: 5
+          },
+          
           headerStyle: { backgroundColor: theme.colors.background, shadowColor: 'transparent' }, 
           headerTintColor: theme.colors.text, 
           headerRight: () => (
-            <TouchableOpacity onPress={toggleTheme} style={{ marginRight: 15 }}>
+            <TouchableOpacity onPress={toggleTheme} style={{ marginRight: 15, padding: 5 }}>
               <Ionicons 
                 name={theme.dark ? "sunny" : "moon"} 
-                size={24} 
+                size={26} 
                 color={theme.colors.text} 
               />
             </TouchableOpacity>
