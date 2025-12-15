@@ -1,19 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Vibration, ScrollView, AppState, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Vibration, ScrollView, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 import Svg, { Circle } from 'react-native-svg';
 
 
 import { useTheme } from '../context/themeContext';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 
 const TOTAL_DURATION = 25 * 60; 
@@ -27,7 +18,7 @@ export default function HomeScreen() {
   const styles = getStyles(colors);
 
   const [timeLeft, setTimeLeft] = useState(TOTAL_DURATION); 
-  
+ 
   const [currentSessionLimit, setCurrentSessionLimit] = useState(TOTAL_DURATION);
   
   const [isActive, setIsActive] = useState(false);
@@ -37,21 +28,6 @@ export default function HomeScreen() {
   
   const appState = useRef(AppState.currentState);
   const categories = ["Ders Çalışma", "Kodlama", "Proje", "Kitap Okuma"];
-
-  useEffect(() => {
-    async function requestPermissions() {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') Alert.alert('İzin Gerekli', 'Bildirim izni vermelisiniz.');
-    }
-    requestPermissions();
-  }, []);
-
-  const sendNotification = async () => {
-    await Notifications.scheduleNotificationAsync({
-      content: { title: "🚀 Odaklanma Başladı!", body: `Hedef: ${selectedCategory}.`, sound: true },
-      trigger: null,
-    });
-  };
 
   const saveSession = useCallback(async () => {
     try {
@@ -103,7 +79,6 @@ export default function HomeScreen() {
       Vibration.vibrate(); 
       saveSession(); 
       setModalVisible(true); 
-      Notifications.scheduleNotificationAsync({ content: { title: "🎉 Süre Doldu!", body: "Mola vakti!" }, trigger: null });
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft, saveSession]);
@@ -115,7 +90,6 @@ export default function HomeScreen() {
   };
 
   const handleStartStop = () => {
-    if (!isActive) sendNotification();
     setIsActive(!isActive);
   };
 
@@ -138,7 +112,7 @@ export default function HomeScreen() {
   
   const addDistraction = () => { if (isActive) setDistractionCount(distractionCount + 1); };
 
-
+  
   const progress = timeLeft / currentSessionLimit;
   const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 
@@ -151,12 +125,12 @@ export default function HomeScreen() {
           {categories.map((cat) => (
             <TouchableOpacity 
               key={cat} 
-              
+              // Sayaç çalışıyorsa tıklamayı engelle
               disabled={isActive}
               style={[
                 styles.categoryBadge, 
                 selectedCategory === cat && styles.categorySelected,
-                
+                // Sayaç çalışıyorsa görsel olarak soluklaştır
                 isActive && { opacity: 0.5 }
               ]}
               onPress={() => setSelectedCategory(cat)}
@@ -193,7 +167,7 @@ export default function HomeScreen() {
                     cx={RADIUS + (STROKE_WIDTH/2)}
                     cy={RADIUS + (STROKE_WIDTH/2)}
                     r={RADIUS}
-                    stroke={colors.primary} 
+                    stroke={colors.primary} // İlerleyen renkli çember
                     strokeWidth={STROKE_WIDTH}
                     fill="transparent"
                     strokeDasharray={CIRCUMFERENCE}
@@ -241,7 +215,7 @@ export default function HomeScreen() {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>🎉 Seans Tamamlandı!</Text>
             <Text style={styles.modalText}>Kategori: {selectedCategory}</Text>
-           
+            
             <Text style={styles.modalText}>Süre: {Math.ceil((currentSessionLimit - timeLeft) / 60)} Dakika</Text>
             <Text style={styles.modalText}>Dikkat Dağılması: {distractionCount} kez</Text>
             <TouchableOpacity 

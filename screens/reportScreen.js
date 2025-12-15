@@ -125,7 +125,7 @@ export default function ReportsScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.headerTitle}>İstatistikler</Text>
 
-      {/* Kartlar */}
+      
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: colors.primary }]}>
           <Text style={styles.statValue}>{stats.todayFocus} dk</Text>
@@ -137,7 +137,7 @@ export default function ReportsScreen() {
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.stop }]}> 
           <Text style={styles.statValue}>{stats.totalDistractions}</Text>
-          <Text style={styles.statLabel}>Dikkat K.</Text>
+          <Text style={styles.statLabel}>Dikkat D.</Text>
         </View>
       </View>
 
@@ -158,7 +158,7 @@ export default function ReportsScreen() {
         <Text style={styles.noDataText}>Henüz veri yok. Bir seans tamamlayın!</Text>
       )}
 
-      {/* Bar Grafik (Süre) */}
+     
       <Text style={styles.chartTitle}>Haftalık Odaklanma (Dk)</Text>
       <BarChart
         data={chartData}
