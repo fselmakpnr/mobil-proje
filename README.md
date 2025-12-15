@@ -1,4 +1,4 @@
-# ODAKTAKİP
+# ODAKLANMA TAKİBİ UYGULAMASI
 
 Bu proje bir odaklanma ve zaman takip mobil uygulamasıdır.  
 Kullanıcıların belirli bir süre boyunca odaklanmasını, dikkat dağınıklıklarını kaydetmesini ve çalışma istatistiklerini görüntülemesini amaçlar.
@@ -35,12 +35,15 @@ Uygulama React Native (Expo) kullanılarak geliştirilmiştir.
 git clone https://github.com/fselmakpnr/mobil-proje
 
 2. Proje klasörüne girin
+```bash
 cd odakTakip
 
 3. Gerekli paketleri yükleyin
+```bash
 npm install
 
 4. Uygulamayı çalıştırın
+```bash
 npx expo start
 
 
