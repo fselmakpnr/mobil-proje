@@ -32,7 +32,8 @@ Uygulama React Native (Expo) kullanılarak geliştirilmiştir.
 
 1. Projeyi bilgisayarınıza klonlayın:
 ```bash
-https://github.com/fselmakpnr/mobil-proje
+git clone https://github.com/fselmakpnr/mobil-proje
+
 2. Proje klasörüne girin: 
 cd odakTakip
 3. Gerekli paketleri yükleyin:
