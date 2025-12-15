@@ -34,12 +34,15 @@ Uygulama React Native (Expo) kullanılarak geliştirilmiştir.
 ```bash
 git clone https://github.com/fselmakpnr/mobil-proje
 
-2. Proje klasörüne girin: 
+2. Proje klasörüne girin
 cd odakTakip
-3. Gerekli paketleri yükleyin:
+
+3. Gerekli paketleri yükleyin
 npm install
-4. Uygulamayı çalıştırın:
+
+4. Uygulamayı çalıştırın
 npx expo start
+
 
 Zamanlayıcı (HomeScreen): Odak süresi başlatma, durdurma ve sıfırlama
 Raporlar (ReportScreen): Günlük ve haftalık grafikler ve kategori dağılımı
