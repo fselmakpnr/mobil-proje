@@ -49,10 +49,12 @@ npm install
 npx expo start
 ```
 
+### Kullanım
 
-Zamanlayıcı (HomeScreen): Odak süresi başlatma, durdurma ve sıfırlama
-Raporlar (ReportScreen): Günlük ve haftalık grafikler ve kategori dağılımı
-
+Zamanlayıcı (HomeScreen): Odak süresi başlatılır
+Raporlar (ReportScreen): Günlük ve haftalık grafikler ve kategori dağılımı görülür
+### Proje Yapısı
+```
 ODAKTAKIP
 │
 ├── assets
@@ -64,3 +66,4 @@ ODAKTAKIP
 ├── App.js
 ├── app.json
 ├── package.json
+```
